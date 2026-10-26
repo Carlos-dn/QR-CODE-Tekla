@@ -7,7 +7,7 @@
   <style>
     *{box-sizing:border-box}html,body{margin:0;height:100%;font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;background:#f4f7fb;color:#182b43}
     #app{height:100dvh;display:flex;flex-direction:column}header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 20px;background:white;border-bottom:1px solid #e3e9f1}
-    h1{font-size:18px;margin:0}small{color:#61758e} .meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.tag{background:#eaf1fa;border-radius:8px;padding:7px 11px;font-size:13px;font-weight:700}
+    h1{font-size:18px;margin:0}small{color:#61758e}.meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.tag{background:#eaf1fa;border-radius:8px;padding:7px 11px;font-size:13px;font-weight:700}
     main{flex:1;position:relative;min-height:0}#viewer{position:absolute;inset:0}#viewer canvas{display:block;width:100%;height:100%;touch-action:none}
     #status{position:absolute;top:14px;left:14px;right:14px;max-width:520px;background:#fff;box-shadow:0 8px 35px #12263b21;border-radius:10px;padding:12px 16px;font-size:14px;z-index:2}
     #status.error{color:#9d2739;background:#fff0f0}#status.ok{display:none}
@@ -26,7 +26,7 @@
 </head>
 <body>
 <div id="app">
-<header><div><h1>QR CODE Tekla · Visualizador de conjuntos</h1><small>Modelo 3D de fabricação · Visualização no navegador</small></div><div class="meta"><span id="project" class="tag">Projeto: TESTE</span><span id="assembly" class="tag">Conjunto: C-101</span></div></header>
+<header><div><h1>QR CODE Tekla · Visualizador de conjuntos</h1><small>Modelo 3D de fabricação · Visualização no navegador</small></div><div class="meta"><span id="project" class="tag">Projeto: Teste-QR-Code</span><span id="assembly" class="tag">Conjunto: C-101</span></div></header>
 <main>
   <div id="viewer"></div>
   <div id="status" role="status">Inicializando visualizador 3D…</div>
@@ -41,7 +41,7 @@ import {IfcAPI} from 'web-ifc';
 const root = document.querySelector('#viewer');
 const statusEl = document.querySelector('#status');
 const parameters = new URLSearchParams(location.search);
-const rawProject = parameters.get('projeto') || 'TESTE';
+const rawProject = parameters.get('projeto') || 'Teste-QR-Code';
 const rawAssembly = parameters.get('conjunto') || 'C-101';
 const safePart = text => /^[a-zA-Z0-9_-]{1,70}$/.test(text) ? text : null;
 const project = safePart(rawProject);
@@ -61,7 +61,7 @@ const modelRoot=new THREE.Group();scene.add(modelRoot);let edgesVisible=false;le
 function onResize(){const width=Math.max(1,root.clientWidth),height=Math.max(1,root.clientHeight);camera.aspect=width/height;camera.updateProjectionMatrix();renderer.setSize(width,height,false)}
 window.addEventListener('resize',onResize);new ResizeObserver(onResize).observe(root);onResize();
 function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}animate();
-function frameModel(){if(!currentBox)return;const center=currentBox.getCenter(new THREE.Vector3()),size=currentBox.getSize(new THREE.Vector3());const diagonal=Math.max(size.length(),0.1);const fov=THREE.MathUtils.degToRad(camera.fov);const distance=(Math.max(size.x,size.y,size.z)/ (2*Math.tan(fov/2)))*2.0;
+function frameModel(){if(!currentBox)return;const center=currentBox.getCenter(new THREE.Vector3()),size=currentBox.getSize(new THREE.Vector3());const diagonal=Math.max(size.length(),0.1);const fov=THREE.MathUtils.degToRad(camera.fov);const distance=(Math.max(size.x,size.y,size.z)/(2*Math.tan(fov/2)))*2.0;
 controls.target.copy(center);camera.position.copy(center).add(new THREE.Vector3(1.2,.9,1.25).normalize().multiplyScalar(Math.max(distance,diagonal*1.5)));camera.near=Math.max(diagonal/10000,.0001);camera.far=Math.max(diagonal*1000,100);camera.updateProjectionMatrix();controls.update()}
 document.querySelector('#fit').onclick=frameModel;document.querySelector('#reset').onclick=frameModel;
 document.querySelector('#wire').onclick=()=>{edgesVisible=!edgesVisible;modelRoot.traverse(obj=>{if(obj.isLineSegments)obj.visible=edgesVisible});document.querySelector('#wire').textContent=edgesVisible?'Arestas: ligadas':'Arestas: desligadas'};
@@ -69,8 +69,7 @@ function ifcBuffer(api,modelID,placed){const raw=api.GetGeometry(modelID,placed.
 for(let i=0,j=0;i<vertex.length;i+=6,j+=3){positions[j]=vertex[i];positions[j+1]=vertex[i+1];positions[j+2]=vertex[i+2];normals[j]=vertex[i+3];normals[j+1]=vertex[i+4];normals[j+2]=vertex[i+5]}
 const geom=new THREE.BufferGeometry();geom.setAttribute('position',new THREE.BufferAttribute(positions,3));geom.setAttribute('normal',new THREE.BufferAttribute(normals,3));geom.setIndex(Array.from(indices));raw.delete();return geom}
 async function load(){if(!project||!assembly){setStatus('Projeto ou conjunto contém caracteres inválidos.',true);return}
-// Para o primeiro teste, C-101.ifc está na raiz. Os demais ficam em modelos/PROJETO/CONJUNTO.ifc.
-const fallback=project==='TESTE'&&assembly==='C-101';const file=fallback?`./C-101.ifc`:`./Modelos/${encodeURIComponent(project)}/${encodeURIComponent(assembly)}.ifc`;
+const file=`./Modelos/${encodeURIComponent(project)}/${encodeURIComponent(assembly)}.ifc`;
 try{setStatus(`Baixando ${file}…`);const response=await fetch(file);if(!response.ok)throw new Error(`Arquivo não encontrado (${response.status}): ${file}. Confira nome, maiúsculas e pasta no GitHub.`);
 const data=new Uint8Array(await response.arrayBuffer());setStatus('Interpretando o IFC…');const api=new IfcAPI();api.SetWasmPath('https://cdn.jsdelivr.net/npm/web-ifc@0.0.77/');await api.Init();const modelID=api.OpenModel(data,{COORDINATE_TO_ORIGIN:true});let count=0;
 try{api.StreamAllMeshes(modelID,flat=>{const placed=flat.geometries;for(let k=0;k<placed.size();k++){const item=placed.get(k);const geometry=ifcBuffer(api,modelID,item);const color=item.color;const material=new THREE.MeshStandardMaterial({color:new THREE.Color().setRGB(color.x,color.y,color.z,THREE.SRGBColorSpace),roughness:.8,metalness:.12,side:THREE.DoubleSide,transparent:color.w<.999,opacity:color.w,depthWrite:color.w>=.999});const mesh=new THREE.Mesh(geometry,material);mesh.matrixAutoUpdate=false;mesh.matrix.fromArray(item.flatTransformation);modelRoot.add(mesh);const edges=new THREE.LineSegments(new THREE.EdgesGeometry(geometry,35),new THREE.LineBasicMaterial({color:0x243548,transparent:true,opacity:.55}));edges.matrixAutoUpdate=false;edges.matrix.copy(mesh.matrix);edges.visible=false;modelRoot.add(edges);count++;}})}finally{api.CloseModel(modelID)}
