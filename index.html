@@ -43,7 +43,7 @@ const statusEl = document.querySelector('#status');
 const parameters = new URLSearchParams(location.search);
 const rawProject = parameters.get('projeto') || 'Teste-QR-Code';
 const rawAssembly = parameters.get('conjunto') || 'C-101';
-const safePart = text => /^[a-zA-Z0-9_-]{1,70}$/.test(text) ? text : null;
+const safePart = text => /^[a-zA-Z0-9_ -]{1,70}$/.test(text) ? text : null;
 const project = safePart(rawProject);
 const assembly = safePart(rawAssembly);
 document.querySelector('#project').textContent = `Projeto: ${project || 'inválido'}`;
